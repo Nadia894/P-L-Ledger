@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="P&L Ledger">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16233A">
+<title>P&L Ledger</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%2316233A'/%3E%3Ctext x='90' y='108' font-family='Georgia,serif' font-size='64' font-weight='700' fill='%23A9812F' text-anchor='middle'%3EPL%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%2316233A'/%3E%3Ctext x='90' y='108' font-family='Georgia,serif' font-size='64' font-weight='700' fill='%23A9812F' text-anchor='middle'%3EPL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16233A; --paper:#EFEBE0; --line:#D8D2C0; --red:#8C3B32;
+    --green:#33604D; --gold:#A9812F; --mute:#6B6455; --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif;
+    padding-top:calc(env(safe-area-inset-top) + 18px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 24px);
+    padding-left:16px; padding-right:16px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .header{border-bottom:3px double var(--ink); padding-bottom:14px; margin-bottom:18px;}
+  .title{font-family:'Spectral',serif; font-weight:700; font-size:24px;}
+  .subtitle{font-size:13px; color:var(--mute); margin-top:2px;}
+
+  .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center;}
+  .tab{
+    font-family:'IBM Plex Mono',monospace; font-size:13px; padding:6px 12px;
+    border-radius:3px; border:1px solid var(--ink); background:transparent; color:var(--ink);
+    cursor:pointer;
+  }
+  .tab.active{background:var(--ink); color:var(--paper);}
+  .add-btn{
+    font-size:13px; padding:6px 12px; border-radius:3px; border:1px dashed var(--mute);
+    background:transparent; color:var(--mute); cursor:pointer;
+  }
+
+  .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:4px; margin-bottom:22px; -webkit-overflow-scrolling:touch;}
+  table{width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:13px; min-width:420px;}
+  thead tr{background:var(--ink); color:var(--paper);}
+  th{padding:10px 12px; text-align:right; min-width:120px;}
+  th.first{text-align:left; font-family:'Inter',sans-serif; font-weight:600; font-size:12px;}
+  th input{
+    background:transparent; border:none; color:var(--paper); text-align:right;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:13px; width:100%; outline:none;
+  }
+  .remove-link{cursor:pointer; font-size:10px; color:#C9C2AE; margin-top:2px; text-align:right;}
+  td{padding:7px 12px; text-align:right; border-top:1px solid var(--line);}
+  td.label-cell{text-align:left;}
+  tr.subtotal td{border-top:1.5px solid var(--ink); background:rgba(22,35,58,0.04); font-family:'Inter',sans-serif; font-weight:600;}
+  tr.finaltotal td{border-top:1.5px solid var(--ink); background:rgba(169,129,47,0.12); font-family:'Inter',sans-serif; font-weight:600; color:var(--gold);}
+  tr.indent td.label-cell{padding-left:30px; font-style:italic;}
+  td.negative{color:var(--red);}
+  td input{
+    width:82px; text-align:right; border:none; background:transparent;
+    font-family:'IBM Plex Mono',monospace; font-size:13px; color:inherit; outline:none;
+  }
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:24px;}
+  .card{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:12px 14px;}
+  .card-label{font-size:11px; color:var(--mute); text-transform:uppercase; letter-spacing:0.5px;}
+  .card-val{font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600; margin-top:4px;}
+  .card-sub{font-size:11px; color:var(--mute); margin-top:2px;}
+
+  .section-title{font-family:'Spectral',serif; font-weight:600; font-size:16px; margin-bottom:10px;}
+  .chart-box{background:var(--white); border:1px solid var(--line); border-radius:4px; padding:12px 8px; margin-bottom:24px;}
+
+  .wf-row{display:flex; align-items:stretch; height:230px; gap:6px;}
+  .wf-col{flex:1; position:relative; display:flex; flex-direction:column; align-items:center; min-width:44px;}
+  .wf-track{position:relative; width:26px; height:190px; margin:0 auto;}
+  .wf-bar{position:absolute; left:0; right:0; border-radius:2px;}
+  .wf-val{font-size:10px; font-family:'IBM Plex Mono',monospace; text-align:center; margin-bottom:3px; white-space:nowrap;}
+  .wf-label{font-size:10px; color:var(--mute); text-align:center; margin-top:6px; white-space:nowrap;}
+
+  .footnote{font-size:11px; color:var(--mute); text-align:center; margin-top:6px;}
+  .legend{display:flex; gap:16px; justify-content:center; margin-top:8px; font-size:11px; flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">P&amp;L Ledger</div>
+  <div class="subtitle">Compare income statements across companies or periods. Edit any figure below.</div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div class="table-wrap"><div id="tableHost"></div></div>
+<div class="cards" id="cards"></div>
+
+<div class="section-title" id="wfTitle">Profit bridge</div>
+<div class="chart-box"><div class="wf-row" id="waterfall"></div></div>
+
+<div id="trendSection" style="display:none;">
+  <div class="section-title">Margin trend across periods</div>
+  <div class="chart-box">
+    <svg id="trendSvg" viewBox="0 0 600 220" style="width:100%; height:auto; display:block;"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:#33604D"></i>Gross Margin</span>
+      <span><i class="dot" style="background:#16233A"></i>EBITDA Margin</span>
+      <span><i class="dot" style="background:#A9812F"></i>Net Margin</span>
+    </div>
+  </div>
+</div>
+
+<div class="footnote">Tax defaults to the UAE 9% corporate rate — edit per period as needed. Data is saved on this device only.</div>
+
+<script>
+const COLORS = { ink:'#16233A', red:'#8C3B32', green:'#33604D', gold:'#A9812F', mute:'#6B6455' };
+
+const ROWS = [
+  { key:'revenue', label:'Revenue', editable:true, indent:0 },
+  { key:'cogs', label:'Cost of Goods Sold', editable:true, indent:0, negRow:true },
+  { key:'grossProfit', label:'Gross Profit', editable:false, indent:0, subtotal:true },
+  { key:'payroll', label:'Payroll', editable:true, indent:1, negRow:true },
+  { key:'rent', label:'Rent', editable:true, indent:1, negRow:true },
+  { key:'marketing', label:'Marketing', editable:true, indent:1, negRow:true },
+  { key:'otherOpex', label:'Other Opex', editable:true, indent:1, negRow:true },
+  { key:'ebitda', label:'EBITDA', editable:false, indent:0, subtotal:true },
+  { key:'da', label:'Depreciation & Amortization', editable:true, indent:1, negRow:true },
+  { key:'ebit', label:'EBIT (Operating Profit)', editable:false, indent:0, subtotal:true },
+  { key:'interest', label:'Interest', editable:true, indent:1, negRow:true },
+  { key:'pretax', label:'Pre-tax Profit', editable:false, indent:0, subtotal:true },
+  { key:'taxRate', label:'Tax Rate (%)', editable:true, indent:1, isRate:true },
+  { key:'tax', label:'Tax', editable:false, indent:1, negRow:true, computed:true },
+  { key:'netProfit', label:'Net Profit', editable:false, indent:0, finalTotal:true },
+];
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function emptyPeriod(name){
+  return { id:uid(), name, revenue:0, cogs:0, payroll:0, rent:0, marketing:0, otherOpex:0, da:0, interest:0, taxRate:0.09 };
+}
+
+function defaultPeriods(){
+  return [
+    Object.assign(emptyPeriod('Year 1'), { revenue:1000000, cogs:600000, payroll:120000, rent:40000, marketing:30000, otherOpex:20000, da:15000, interest:5000 }),
+    Object.assign(emptyPeriod('Year 2'), { revenue:1250000, cogs:720000, payroll:140000, rent:42000, marketing:45000, otherOpex:25000, da:18000, interest:6000 }),
+  ];
+}
+
+let periods = [];
+let selectedId = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem('pnlLedgerData');
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed.periods && parsed.periods.length){
+        periods = parsed.periods;
+        selectedId = parsed.selectedId && periods.some(p=>p.id===parsed.selectedId) ? parsed.selectedId : periods[0].id;
+        return;
+      }
+    }
+  }catch(e){}
+  periods = defaultPeriods();
+  selectedId = periods[0].id;
+}
+
+function save(){
+  localStorage.setItem('pnlLedgerData', JSON.stringify({ periods, selectedId }));
+}
+
+function fmt(n){
+  const r = Math.round(n||0);
+  const s = Math.abs(r).toLocaleString();
+  return r<0 ? '(' + s + ')' : s;
+}
+function pct(n){ return ((n||0)*100).toFixed(1)+'%'; }
+
+function computeMetrics(p){
+  const opex = p.payroll + p.rent + p.marketing + p.otherOpex;
+  const grossProfit = p.revenue - p.cogs;
+  const ebitda = grossProfit - opex;
+  const ebit = ebitda - p.da;
+  const pretax = ebit - p.interest;
+  const tax = pretax > 0 ? pretax * p.taxRate : 0;
+  const netProfit = pretax - tax;
+  const rev = p.revenue || 1;
+  return { opex, grossProfit, ebitda, ebit, pretax, tax, netProfit,
+    grossMargin: grossProfit/rev, ebitdaMargin: ebitda/rev, opMargin: ebit/rev, netMargin: netProfit/rev };
+}
+
+function buildWaterfall(p, m){
+  const steps = [];
+  let running = p.revenue;
+  steps.push({ label:'Revenue', base:0, val:running, isTotal:true });
+  function delta(label, d){
+    const base = Math.min(running, running+d);
+    steps.push({ label, base, val:Math.abs(d), isTotal:false });
+    running += d;
+  }
+  delta('COGS', -p.cogs);
+  steps.push({ label:'Gross Profit', base:0, val:running, isTotal:true });
+  delta('Opex', -m.opex);
+  steps.push({ label:'EBITDA', base:0, val:running, isTotal:true });
+  delta('D&A', -p.da);
+  steps.push({ label:'EBIT', base:0, val:running, isTotal:true });
+  delta('Interest', -p.interest);
+  steps.push({ label:'Pre-tax', base:0, val:running, isTotal:true });
+  delta('Tax', -m.tax);
+  steps.push({ label:'Net Profit', base:0, val:running, isTotal:true, final:true });
+  return steps;
+}
+
+function getPeriod(id){ return periods.find(p=>p.id===id); }
+
+function onFieldInput(id, key, rawValue){
+  const p = getPeriod(id);
+  if(!p) return;
+  if(key === 'taxRate'){ p.taxRate = (parseFloat(rawValue)||0) / 100; }
+  else { p[key] = parseFloat(rawValue) || 0; }
+  save();
+  refreshComputed(id);
+}
+
+function onNameInput(id, value){
+  const p = getPeriod(id);
+  if(!p) return;
+  p.name = value;
+  save();
+  const tab = document.getElementById('tab-'+id);
+  if(tab) tab.textContent = value || 'Untitled';
+}
+
+function selectPeriod(id){
+  selectedId = id;
+  save();
+  renderTabs();
+  renderCards();
+  renderWaterfall();
+}
+
+function addPeriod(){
+  const p = emptyPeriod('Period ' + (periods.length+1));
+  periods.push(p);
+  save();
+  renderAll();
+}
+
+function removePeriod(id){
+  if(periods.length <= 1) return;
+  periods = periods.filter(p=>p.id!==id);
+  if(selectedId === id) selectedId = periods[0].id;
+  save();
+  renderAll();
+}
+
+function cellRawValue(p, row){
+  if(row.isRate) return (p.taxRate*100).toFixed(1);
+  return p[row.key];
+}
+
+function renderTabs(){
+  const host = document.getElementById('tabs');
+  let html = '';
+  periods.forEach(p=>{
+    html += `<button class="tab ${p.id===selectedId?'active':''}" id="tab-${p.id}" onclick="selectPeriod('${p.id}')">${escapeHtml(p.name)}</button>`;
+  });
+  html += `<button class="add-btn" onclick="addPeriod()">+ Add period</button>`;
+  host.innerHTML = html;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderTable(){
+  const host = document.getElementById('tableHost');
+  let thead = `<thead><tr><th class="first">Line item</th>`;
+  periods.forEach(p=>{
+    thead += `<th>
+      <input value="${escapeHtml(p.name)}" oninput="onNameInput('${p.id}', this.value)">
+      ${periods.length>1 ? `<div class="remove-link" onclick="removePeriod('${p.id}')">remove</div>` : ''}
+    </th>`;
+  });
+  thead += `</tr></thead>`;
+
+  let tbody = '<tbody>';
+  ROWS.forEach(row=>{
+    const rowClass = row.finalTotal ? 'finaltotal' : row.subtotal ? 'subtotal' : (row.indent ? 'indent' : '');
+    tbody += `<tr class="${rowClass}">`;
+    tbody += `<td class="label-cell">${row.label}</td>`;
+    periods.forEach(p=>{
+      const negClass = row.negRow && !row.isRate ? 'negative' : '';
+      if(row.editable){
+        const val = cellRawValue(p, row);
+        tbody += `<td class="${negClass}"><input type="number" id="in-${p.id}-${row.key}" value="${val}" oninput="onFieldInput('${p.id}','${row.key}', this.value)">${row.isRate?'%':''}</td>`;
+      } else {
+        tbody += `<td class="${negClass}"><span id="cell-${p.id}-${row.key}"></span></td>`;
+      }
+    });
+    tbody += `</tr>`;
+  });
+  tbody += '</tbody>';
+
+  host.innerHTML = `<table>${thead}${tbody}</table>`;
+  periods.forEach(p=> updateComputedCells(p.id));
+}
+
+function updateComputedCells(id){
+  const p = getPeriod(id);
+  if(!p) return;
+  const m = computeMetrics(p);
+  const map = { grossProfit:m.grossProfit, ebitda:m.ebitda, ebit:m.ebit, pretax:m.pretax, tax:m.tax, netProfit:m.netProfit };
+  Object.keys(map).forEach(key=>{
+    const el = document.getElementById(`cell-${id}-${key}`);
+    if(el) el.textContent = fmt(map[key]);
+  });
+}
+
+function refreshComputed(id){
+  updateComputedCells(id);
+  if(id === selectedId){ renderCards(); renderWaterfall(); }
+  renderTrend();
+}
+
+function renderCards(){
+  const p = getPeriod(selectedId);
+  const m = computeMetrics(p);
+  const items = [
+    { label:'Gross Margin', value:m.grossMargin, color:COLORS.green },
+    { label:'EBITDA Margin', value:m.ebitdaMargin, color:COLORS.green },
+    { label:'Operating Margin', value:m.opMargin, color:COLORS.green },
+    { label:'Net Margin', value:m.netMargin, color:COLORS.gold },
+  ];
+  document.getElementById('cards').innerHTML = items.map(c=>`
+    <div class="card">
+      <div class="card-label">${c.label}</div>
+      <div class="card-val" style="color:${c.color}">${pct(c.value)}</div>
+      <div class="card-sub">${escapeHtml(p.name)}</div>
+    </div>
+  `).join('');
+}
+
+function renderWaterfall(){
+  const p = getPeriod(selectedId);
+  const m = computeMetrics(p);
+  document.getElementById('wfTitle').textContent = 'Profit bridge — ' + p.name;
+  const steps = buildWaterfall(p, m);
+  const maxVal = Math.max(...steps.map(s=>s.base+s.val), 1);
+  const host = document.getElementById('waterfall');
+  host.innerHTML = steps.map(s=>{
+    const bottomPct = (s.base/maxVal)*100;
+    const heightPct = (s.val/maxVal)*100;
+    const color = s.final ? COLORS.gold : s.isTotal ? COLORS.ink : COLORS.red;
+    return `<div class="wf-col">
+      <div class="wf-val">${fmt(s.val)}</div>
+      <div class="wf-track">
+        <div class="wf-bar" style="bottom:${bottomPct}%; height:${Math.max(heightPct,1)}%; background:${color};"></div>
+      </div>
+      <div class="wf-label">${s.label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrend(){
+  const section = document.getElementById('trendSection');
+  if(periods.length < 2){ section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const series = {
+    gross: periods.map(p=>computeMetrics(p).grossMargin*100),
+    ebitda: periods.map(p=>computeMetrics(p).ebitdaMargin*100),
+    net: periods.map(p=>computeMetrics(p).netMargin*100),
+  };
+  const allVals = [...series.gross, ...series.ebitda, ...series.net];
+  let minV = Math.min(0, ...allVals), maxV = Math.max(...allVals);
+  if(maxV === minV) maxV = minV + 10;
+  const pad = (maxV - minV) * 0.15;
+  minV -= pad; maxV += pad;
+
+  const W=600, H=220, mL=42, mR=14, mT=14, mB=30;
+  const plotW = W-mL-mR, plotH = H-mT-mB;
+  const n = periods.length;
+  const xStep = n>1 ? plotW/(n-1) : 0;
+  const x = i => mL + i*xStep;
+  const y = v => mT + plotH*(1 - (v-minV)/(maxV-minV));
+
+  function pathFor(arr){
+    return arr.map((v,i)=> `${i===0?'M':'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  }
+  function dotsFor(arr, color){
+    return arr.map((v,i)=> `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${color}"/>`).join('');
+  }
+
+  const zeroY = y(0);
+  let svg = '';
+  svg += `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${W-mR}" y2="${zeroY.toFixed(1)}" stroke="#D8D2C0" stroke-dasharray="3,3"/>`;
+  svg += `<text x="${mL-6}" y="${zeroY.toFixed(1)}" font-size="9" fill="${COLORS.mute}" text-anchor="end" dominant-baseline="middle">0%</text>`;
+  svg += `<text x="${mL-6}" y="${(mT+4)}" font-size="9" fill="${COLORS.mute}" text-anchor="end">${maxV.toFixed(0)}%</text>`;
+  svg += `<text x="${mL-6}" y="${(H-mB)}" font-size="9" fill="${COLORS.mute}" text-anchor="end">${minV.toFixed(0)}%</text>`;
+
+  periods.forEach((p,i)=>{
+    svg += `<text x="${x(i).toFixed(1)}" y="${H-8}" font-size="10" fill="${COLORS.mute}" text-anchor="middle" font-family="IBM Plex Mono, monospace">${escapeHtml(p.name)}</text>`;
+  });
+
+  svg += `<path d="${pathFor(series.gross)}" fill="none" stroke="${COLORS.green}" stroke-width="2"/>${dotsFor(series.gross, COLORS.green)}`;
+  svg += `<path d="${pathFor(series.ebitda)}" fill="none" stroke="${COLORS.ink}" stroke-width="2"/>${dotsFor(series.ebitda, COLORS.ink)}`;
+  svg += `<path d="${pathFor(series.net)}" fill="none" stroke="${COLORS.gold}" stroke-width="2"/>${dotsFor(series.net, COLORS.gold)}`;
+
+  document.getElementById('trendSvg').innerHTML = svg;
+}
+
+function renderAll(){
+  renderTabs();
+  renderTable();
+  renderCards();
+  renderWaterfall();
+  renderTrend();
+}
+
+load();
+renderAll();
+</script>
+</body>
+</html>
